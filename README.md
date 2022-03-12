@@ -69,7 +69,7 @@ We have to rename the projects (product1-dev-zwindler, ...) because projects are
 
 To do this, change the following variables to match your google cloud environement. Also change the directory names to match EXACTLY the project_name you gave (we'll need it to be consistent later).
 
-```json
+```hcl
 cat dept-datascience/team-A/product1/product1-dev-totototo/variables.tf
 variable "billing_account" {
     default = "010101-ABABAB-010101"
@@ -98,7 +98,7 @@ Go to your Google Cloud console, get all the ID from the newly created folder an
 
 ![](binaries/folders.png)
 
-```json
+```hcl
 variable "folder_id" {
     default = "folders/1234567890"
 }
@@ -138,7 +138,7 @@ If all goes well, changing the way our code works with terragrunt should have **
 
 First, we need to create at bottom level a terragrunt.hcl file in `dept-datascience/team-A/product1/product1-dev-zwindler`. In this file, we are going to tell terragrunt to look upward in the directory hierarchy for a "global.hcl" file which will contain all the variables we ALWAYS NEED and never change like the billing_account for example.
 
-```json
+```hcl
 cat > dept-datascience/team-A/product1/product1-dev-zwindler/terragrunt.hcl << EOF
 inputs = merge(
     read_terragrunt_config(find_in_parent_folders("global.hcl")).inputs,
@@ -150,7 +150,7 @@ Note: We could have specified an absolute path in `read_terragrunt_config` funct
 
 Then, we create the global.hcl file at top level so that all subdirectories can benefit from it.
 
-```json
+```hcl
 cat > global.hcl << EOF
 inputs = {
     billing_account = "01AB34-CD56EF-78GH90"
@@ -199,7 +199,7 @@ variable "project_name" {
 
 And in the terragrunt.hcl file, in the inputs section, we are going to add a line for the project_name variable:
 
-```json
+```hcl
 inputs = merge(
     read_terragrunt_config(find_in_parent_folders("global.hcl")).inputs,
     #add these 3 lines
@@ -229,7 +229,7 @@ Factoring variables using intermediate files that can be applied to multiple dir
 
 We are going to use the same tactic (looking upward) to replace completely terragrunt.hcl file with one that contains only 3 generic lines. We are going to create a top level `terragrunt.hcl` , where the real "factoring magic" will happen for all projects of our repo!!
 
-```json
+```hcl
 mv dept-datascience/team-A/product1/product1-dev-zwindler/terragrunt.hcl terragrunt.hcl 
 cat > dept-datascience/team-A/product1/product1-dev-zwindler/terragrunt.hcl << EOF
 include "root" {
@@ -259,7 +259,7 @@ prefix  = "product1-dev-zwindler"
 
 We are going to replace our `dept-datascience/team-A/product1/product1-dev-zwindler/backend.tf` remote state configuration file by an empty one. This will tell terragrunt to look upward for backend configuration.
 
-```json
+```hcl
 cat > dept-datascience/team-A/product1/product1-dev-zwindler/backend.tf << EOF
 terraform{
     backend "gcs" {}
@@ -279,7 +279,7 @@ EOF
 
 Finally, we add the following section in our top-level terragrunt.hcl:
 
-```json
+```hcl
 remote_state {
     backend = "gcs"
     config = {
@@ -299,7 +299,7 @@ Using the same strategies, we are going to strip all variables still inside `dep
 
 First, I'm going to assume that we want, by default, all our resources to be deployed in western europe. This can of course be overriden, but most of the time it will be enough. So the values can be added in global.hcl file:
 
-```json
+```hcl
 cat > global.hcl <<EOF
 inputs = {
     billing_account = "01AB34-CD56EF-78GH90"
@@ -312,7 +312,7 @@ EOF
 
 Then, the team name and owner name are going to be the same for all project beneath dept-datascience/team-A (again, it's overridable if need be):
 
-```json
+```hcl
 cat > dept-datascience/team-A/team.hcl <<EOF
 inputs = {
     team" = "team_a"
@@ -323,7 +323,7 @@ EOF
 
 All projects from a given product are stored in the same folder in this example (dev and prod for product1). So, the folder variable has to be defined at `dept-datascience/team-A/product1` level.
 
-```json
+```hcl
 cat > dept-datascience/team-A/product1/product.hcl <<EOF
 inputs = {
     folder_id = "folders/1039580298145"
@@ -333,7 +333,7 @@ EOF
 
 team.hcl, product.hcl are new files to discover upward. Also, environment has to be deduced from directory name (like project_name). So we have to add this in our top-level terragrunt.hcl file in the inputs section:
 
-```json
+```hcl
 inputs = merge(
     read_terragrunt_config(find_in_parent_folders("global.hcl")).inputs,
     #add these 2 lines
