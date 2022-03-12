@@ -214,3 +214,50 @@ EOF
 Here you can see that I just "moved" the terragrunt.hcl we previously built to the top level, but now we can access it from any subdirectory with only 3 lines of hcl, which is going to save us a lot of lines of code if we have lots of projects.
 
 You can check that this works by *again* run a `terragrunt plan` which should *again* not see any difference.
+
+## Factoring remote state backend
+
+One really annoying pain point with terraform is that **you cannot** use variables in you backend configuration. Hopefully terragrunt fixes this.
+
+If we look at product1-dev-zwindler backend configuration, we can deduce that:
+* bucket name is shared (in this example) for all **product1** projects (dev and prod here)
+* state prefix (the path of the state file in the bucket) is equal to the project name, which is itself the name of the terraform folder and can be deduced
+
+```tf
+bucket  = "states-bucket-eu-product1"
+prefix  = "product1-dev-zwindler"
+```
+
+We are going to replace our `dept-datascience/team-A/product1/product1-dev-zwindler/backend.tf` remote state configuration file by an empty one. This will tell terragrunt to look upward for backend configuration.
+
+```hcl
+cat > dept-datascience/team-A/product1/product1-dev-zwindler/backend.tf << EOF
+terraform{
+    backend "gcs" {}
+}
+EOF
+```
+
+Then, we are going to add a backend.hcl file in `dept-datascience/team-A/product1` which is going be used by all the product1 projects.
+
+```bash
+cat > dept-datascience/team-A/product1/backend.hcl << EOF
+inputs = {
+    bucket = "states-bucket-eu-product1"
+}
+EOF
+```
+
+Finally, we add the following section in our top-level terragrunt.hcl:
+
+```hcl
+remote_state {
+    backend = "gcs"
+    config = {
+        bucket = read_terragrunt_config(find_in_parent_folders("backend.hcl")).inputs.bucket
+        prefix = "${basename(path_relative_to_include())}"
+    }
+}
+```
+
+Once again, terragrunt plan shouldn't see any difference ;-).
