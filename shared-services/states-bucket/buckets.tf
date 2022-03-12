@@ -5,18 +5,14 @@ module "cloud-storage-states-bucket" {
     location = var.location
     prefix = var.project_name
     names = [
-        "product1-dev-zwindler",
-        "product1-prod-zwindler",
-        "product2-dev-zwindler",
-        "product2-prod-zwindler",
-        "shared-services-zwindler",
+        "product1",
+        "product2",
+        "shared-services",
     ]
     versioning = {
-        "product1-dev-zwindler" = true
-        "product1-prod-zwindler" = true
-        "product2-dev-zwindler" = true
-        "product2-prod-zwindler" = true
-        "shared-services-zwindler" = true
+        "product1" = true
+        "product2" = true
+        "shared-services" = true
     }
     set_admin_roles = true
     set_viewer_roles = false
