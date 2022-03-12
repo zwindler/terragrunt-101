@@ -48,7 +48,7 @@ gcloud auth login
 You are now logged in as [xxx@yyy.tld].
 ```
 
-## Configure the project with you specificities
+### Configure the project with you specificities
 
 Clone this repository
 
