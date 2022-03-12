@@ -7,7 +7,7 @@ variable "folder_id" {
 }
 
 variable "project_name" {
-    default = "product1-dev-zwindler"
+    type = string
 }
 
 variable "location" {
