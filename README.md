@@ -261,3 +261,59 @@ remote_state {
 ```
 
 Once again, terragrunt plan shouldn't see any difference ;-).
+
+## Finishing the job
+
+Using the same strategies, we are going to strip all variables still inside `dept-datascience/team-A/product1/product1-dev-zwindler/variables.tf` and factor them at various levels of our folders hierarchy.
+
+First, I'm going to assume that we want, by default, all our resources to be deployed in western europe. This can of course be overriden, but most of the time it will be enough. So the values can be added in global.hcl file:
+
+```hcl
+cat > global.hcl <<EOF
+inputs = {
+    billing_account = "01AB34-CD56EF-78GH90"
+    location = "EU"
+    region = "europe-west1"
+    zone = "europe-west1-b"
+}
+EOF
+```
+
+Then, the team name and owner name are going to be the same for all project beneath dept-datascience/team-A (again, it's overridable if need be):
+
+```hcl
+cat > dept-datascience/team-A/team.hcl <<EOF
+inputs = {
+    team" = "team_a"
+    "owner" = "zwindler"
+}
+EOF
+```
+
+All projects from a given product are stored in the same folder in this example (dev and prod for product1). So, the folder variable has to be defined at `dept-datascience/team-A/product1` level.
+
+```hcl
+cat > dept-datascience/team-A/product1/product.hcl <<EOF
+inputs = {
+    folder_id = "folders/1039580298145"
+}
+EOF
+```
+
+team.hcl, product.hcl are new files to discover upward. Also, environment has to be deduced from directory name (like project_name). So we have to add this in our top-level terragrunt.hcl file in the inputs section:
+
+```hcl
+inputs = merge(
+    read_terragrunt_config(find_in_parent_folders("global.hcl")).inputs,
+    #add these 2 lines
+    read_terragrunt_config(find_in_parent_folders("team.hcl")).inputs,
+    read_terragrunt_config(find_in_parent_folders("product.hcl")).inputs,
+    {
+        project_name = "${basename(get_terragrunt_dir())}"
+        #add this line
+        environment = split("-", "${basename(path_relative_to_include())}")[1]
+    }
+)
+```
+
+In `dept-datascience/team-A/product1/product1-dev-zwindler/variables.tf`, replace all "defaults" by "type = string".

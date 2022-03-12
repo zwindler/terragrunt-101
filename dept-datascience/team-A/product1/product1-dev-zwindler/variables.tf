@@ -3,7 +3,7 @@ variable "billing_account" {
 }
 
 variable "folder_id" {
-    default = "folders/1039580298145"
+    type = string
 }
 
 variable "project_name" {
@@ -11,25 +11,25 @@ variable "project_name" {
 }
 
 variable "location" {
-    default = "EU"
+    type = string
 }
 
 variable "region" {
-    default = "europe-west1"
+    type = string
 }
 
 variable "zone" {
-    default = "europe-west1-b"
+    type = string
 }
 
 variable "environment" {
-    default = "dev"
+    type = string
 }
 
 variable "team" {
-    default = "team_a"
+    type = string
 }
 
 variable "owner" {
-    default = "zwindler"
+    type = string
 }
