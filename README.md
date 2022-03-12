@@ -317,3 +317,40 @@ inputs = merge(
 ```
 
 In `dept-datascience/team-A/product1/product1-dev-zwindler/variables.tf`, replace all "defaults" by "type = string".
+
+Plan will display no difference :)
+
+## Is this over now?
+
+At this point, there shouldn't be any variable left in the `dept-datascience/team-A/product1/product1-dev-zwindler`. All variables to deploy a project are either deduced or given at a higher level in the folders hierarchy.
+
+But if you want to check if this really works, you can copy the `product1-dev-zwindler` to create a new environment (prod for example but this can be anything), and try to deploy it.
+
+terragrunt plan should output a project similar in every point, with all the required variables.
+
+```bash
+cp dept-datascience/team-A/product1/product1-dev-zwindler/*.{tf,hcl} dept-datascience/team-A/product1/product1-prod-zwindler
+cd dept-datascience/team-A/product1/product1-prod-zwindler
+
+terragrunt plan
+Terraform will perform the following actions:
+
+  # module.project.google_project.project[0] will be created
+  + resource "google_project" "project" {
+      + auto_create_network = false
+      + billing_account     = "01AB34-CD56EF-78GH90"
+      + folder_id           = "1039580298145"
+      + id                  = (known after apply)
+      + labels              = {
+          + "environment" = "prod"
+          + "owner"       = "zwindler"
+          + "team"        = "team_a"
+        }
+      + name                = "product1-prod-zwindler"
+      + number              = (known after apply)
+      + project_id          = "product1-prod-zwindler"
+      + skip_delete         = false
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+```
