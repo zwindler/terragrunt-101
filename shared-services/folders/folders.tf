@@ -7,6 +7,15 @@ module "folder-dept-datascience" {
   }
 }
 
+module "folder-shared-services" {
+  source = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/folder"
+  parent = "organizations/246461292578"
+  name  = "shared-services"
+  iam = {
+    "roles/owner" = ["user:blog@zwindler.fr"]
+  }
+}
+
 module "folder-team-A" {
   source = "github.com/GoogleCloudPlatform/cloud-foundation-fabric//modules/folder"
   parent = module.folder-dept-datascience.id
