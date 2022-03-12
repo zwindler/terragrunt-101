@@ -2,30 +2,20 @@
 
 ## Prerequisites
 
-Create a free Google Cloud account (with 300$ credits)
+This tutorial should work with a free Google Cloud account but requires some work to set it up.
 
-Login in console to find billing account
+* Create a free Google Cloud account (with 300$ credits). 
+* Login in console to find billing account and **write it down for later** (ex. 01AB34-CD56EF-78GH90).
+* Activate "Cloud Indentity" to unlock organisations and folders. 
+* In IAM, add your account as 
+  * organisation admin 
+  * folder creator
+  * project creator
+* Get your org ID and **write it down for later** (ex. 123456789012)
 
-```
-#ex.
-01AB34-CD56EF-78GH90
-```
+Once all of this is done, you can install the prerequisites for you machine (or use cloud shell)
 
-Activate "Cloud Indetity" to unlock organisations and folders. 
-
-In IAM, add your account as 
-* organisation admin 
-* folder creator
-* project creator
-
-Get your org ID
-
-```
-#ex.
-123456789012
-```
-
-Install gcloud CLI
+### Install gcloud CLI
 
 ```bash
 sudo apt-get install apt-transport-https ca-certificates gnupg
@@ -34,17 +24,9 @@ curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyr
 sudo apt-get update && sudo apt-get install google-cloud-cli
 ```
 
-Login you shell session in Google cloud
+### Install terraform and terragrunt 
 
-```bash
-gcloud auth login
-
-[browser opens]
-
-You are now logged in as [xxx@yyy.tld].
-```
-
-Install terraform and terragrunt (latest versions are respectively 1.1.7 and v0.36.3 at time of writing)
+Latest versions are respectively 1.1.7 and v0.36.3 at time of writing
 
 ```bash
 curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
@@ -56,7 +38,19 @@ chmod +x terragrunt_linux_amd64
 sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
 ```
 
-## Folders & projects hierarchy
+### Login your shell session in Google cloud
+
+```bash
+gcloud auth login
+
+[browser opens]
+
+You are now logged in as [xxx@yyy.tld].
+```
+
+## Configure the project with you specificities
+
+Clone this repository
 
 ```
 └── terragrunt
@@ -71,7 +65,28 @@ sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
     └── shared-services
 ```
 
-Create all the folders
+We have to rename the projects (product1-dev-zwindler, ...) because projects are unique across ALL Google Cloud and all clients. Yes, that stupid ;-).
+
+To do this, change the following variables to match your google cloud environement. Also change the directory names to match EXACTLY the project_name you gave (we'll need it to be consistent later).
+
+```json
+cat dept-datascience/team-A/product1/product1-dev-totototo/variables.tf
+variable "billing_account" {
+    default = "010101-ABABAB-010101"
+}
+
+[...]
+
+variable "project_name" {
+    default = "product1-dev-totototo"
+}
+```
+
+### Folders & projects hierarchy
+
+Change shared-services/folders/folders.tf variables to match your organisation ID for `folder-dept-datascience` and `folder-shared-services`
+
+Create all the folders in Google cloud
 
 ```bash
 cd shared-services/folders
@@ -79,9 +94,19 @@ terraform init
 terraform apply
 ```
 
-## Create terraform state buckets
+Go to your Google Cloud console, get all the ID from the newly created folder and update the `dept-datascience/team-A/product1/product1-dev-totototo/variables.tf` to update the folder_ID with the ID of folder product1
 
-Now we kinda have a chicken and egg issue with the bucket creation because state can't be stored for the project as the bucket is not yet created. Either create the bucket manually or remove the backend.tf file temporarily
+![](binaries/folders.png)
+
+```json
+variable "folder_id" {
+    default = "folders/1234567890"
+}
+```
+
+### Create terraform state buckets
+
+Now we kinda have a **chicken and egg** situation here with the bucket creation because state can't be stored for the project as the bucket is not yet created. Either create the bucket manually or remove the backend.tf file temporarily
 
 ```bash
 cd shared-services/states-bucket
@@ -89,9 +114,7 @@ terraform init
 terraform apply
 ```
 
-## Deploy a project
-
-Once the folders are created, get the folders ID, and configure the project variables (ex. ` dept-datascience/team-A/product1/product1-dev-zwindler/variables.tf`) to include the good folderID and billing account from previous steps
+### Deploy a project
 
 Deploy one project
 
@@ -115,7 +138,7 @@ If all goes well, changing the way our code works with terragrunt should have **
 
 First, we need to create at bottom level a terragrunt.hcl file in `dept-datascience/team-A/product1/product1-dev-zwindler`. In this file, we are going to tell terragrunt to look upward in the directory hierarchy for a "global.hcl" file which will contain all the variables we ALWAYS NEED and never change like the billing_account for example.
 
-```hcl
+```json
 cat > dept-datascience/team-A/product1/product1-dev-zwindler/terragrunt.hcl << EOF
 inputs = merge(
     read_terragrunt_config(find_in_parent_folders("global.hcl")).inputs,
@@ -127,7 +150,7 @@ Note: We could have specified an absolute path in `read_terragrunt_config` funct
 
 Then, we create the global.hcl file at top level so that all subdirectories can benefit from it.
 
-```hcl
+```json
 cat > global.hcl << EOF
 inputs = {
     billing_account = "01AB34-CD56EF-78GH90"
@@ -160,6 +183,8 @@ and found no differences, so no changes are needed.
 
 Note: another *nice to have* terragrunt feature in comparison to terraform is that you don't have to run "terraform init" anymore. terragrunt ships an "auto init" features which is especially usefull when you heavily use external modules. They which need `terraform init` to be rerun everytime you add a module, *even you used the same module before*.
 
+[Step 2 - 197fc30](https://github.com/zwindler/terragrunt/tree/197fc30e18ff72834b72a17f2f4426023ccd6abc)
+
 ## Factoring a few variables we can guess
 
 We already told that we could "deduce" some of the variables from the directory architecture. We are going to leverage this to factor the project name, which is equal to the folder name in the terraform directory in this example.
@@ -174,7 +199,7 @@ variable "project_name" {
 
 And in the terragrunt.hcl file, in the inputs section, we are going to add a line for the project_name variable:
 
-```hcl
+```json
 inputs = merge(
     read_terragrunt_config(find_in_parent_folders("global.hcl")).inputs,
     #add these 3 lines
@@ -196,13 +221,15 @@ Terraform has compared your real infrastructure against your configuration
 and found no differences, so no changes are needed.
 ```
 
+[Step 3 - e692730](https://github.com/zwindler/terragrunt/tree/e6927300d134c3ee36693d83203ae4dc4471c165)
+
 ## Factor terragrunt.hcl itself
 
 Factoring variables using intermediate files that can be applied to multiple directories is fun, but we can do better.
 
 We are going to use the same tactic (looking upward) to replace completely terragrunt.hcl file with one that contains only 3 generic lines. We are going to create a top level `terragrunt.hcl` , where the real "factoring magic" will happen for all projects of our repo!!
 
-```hcl
+```json
 mv dept-datascience/team-A/product1/product1-dev-zwindler/terragrunt.hcl terragrunt.hcl 
 cat > dept-datascience/team-A/product1/product1-dev-zwindler/terragrunt.hcl << EOF
 include "root" {
@@ -214,6 +241,8 @@ EOF
 Here you can see that I just "moved" the terragrunt.hcl we previously built to the top level, but now we can access it from any subdirectory with only 3 lines of hcl, which is going to save us a lot of lines of code if we have lots of projects.
 
 You can check that this works by *again* run a `terragrunt plan` which should *again* not see any difference.
+
+[Step 4 - eca0199](https://github.com/zwindler/terragrunt/tree/eca0199598cee4b9e1a51f546079e77b055f9dbf)
 
 ## Factoring remote state backend
 
@@ -230,7 +259,7 @@ prefix  = "product1-dev-zwindler"
 
 We are going to replace our `dept-datascience/team-A/product1/product1-dev-zwindler/backend.tf` remote state configuration file by an empty one. This will tell terragrunt to look upward for backend configuration.
 
-```hcl
+```json
 cat > dept-datascience/team-A/product1/product1-dev-zwindler/backend.tf << EOF
 terraform{
     backend "gcs" {}
@@ -250,7 +279,7 @@ EOF
 
 Finally, we add the following section in our top-level terragrunt.hcl:
 
-```hcl
+```json
 remote_state {
     backend = "gcs"
     config = {
@@ -262,13 +291,15 @@ remote_state {
 
 Once again, terragrunt plan shouldn't see any difference ;-).
 
+[Step 5 - 9145ee7](https://github.com/zwindler/terragrunt/tree/9145ee7838680d20f9c89f90fe2573b085f16de8)
+
 ## Finishing the job
 
 Using the same strategies, we are going to strip all variables still inside `dept-datascience/team-A/product1/product1-dev-zwindler/variables.tf` and factor them at various levels of our folders hierarchy.
 
 First, I'm going to assume that we want, by default, all our resources to be deployed in western europe. This can of course be overriden, but most of the time it will be enough. So the values can be added in global.hcl file:
 
-```hcl
+```json
 cat > global.hcl <<EOF
 inputs = {
     billing_account = "01AB34-CD56EF-78GH90"
@@ -281,7 +312,7 @@ EOF
 
 Then, the team name and owner name are going to be the same for all project beneath dept-datascience/team-A (again, it's overridable if need be):
 
-```hcl
+```json
 cat > dept-datascience/team-A/team.hcl <<EOF
 inputs = {
     team" = "team_a"
@@ -292,7 +323,7 @@ EOF
 
 All projects from a given product are stored in the same folder in this example (dev and prod for product1). So, the folder variable has to be defined at `dept-datascience/team-A/product1` level.
 
-```hcl
+```json
 cat > dept-datascience/team-A/product1/product.hcl <<EOF
 inputs = {
     folder_id = "folders/1039580298145"
@@ -302,7 +333,7 @@ EOF
 
 team.hcl, product.hcl are new files to discover upward. Also, environment has to be deduced from directory name (like project_name). So we have to add this in our top-level terragrunt.hcl file in the inputs section:
 
-```hcl
+```json
 inputs = merge(
     read_terragrunt_config(find_in_parent_folders("global.hcl")).inputs,
     #add these 2 lines
@@ -319,6 +350,8 @@ inputs = merge(
 In `dept-datascience/team-A/product1/product1-dev-zwindler/variables.tf`, replace all "defaults" by "type = string".
 
 Plan will display no difference :)
+
+[Step 6 - 88420b1](https://github.com/zwindler/terragrunt/tree/88420b1372eb27f3610c6f71fa83ec7a3d463d8a)
 
 ## Is this over now?
 
@@ -354,3 +387,5 @@ Terraform will perform the following actions:
 
 Plan: 1 to add, 0 to change, 0 to destroy.
 ```
+
+[Step 7 - HEAD](https://github.com/zwindler/terragrunt)
