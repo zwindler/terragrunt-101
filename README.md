@@ -195,3 +195,22 @@ No changes. Your infrastructure matches the configuration.
 Terraform has compared your real infrastructure against your configuration
 and found no differences, so no changes are needed.
 ```
+
+## Factor terragrunt.hcl itself
+
+Factoring variables using intermediate files that can be applied to multiple directories is fun, but we can do better.
+
+We are going to use the same tactic (looking upward) to replace completely terragrunt.hcl file with one that contains only 3 generic lines. We are going to create a top level `terragrunt.hcl` , where the real "factoring magic" will happen for all projects of our repo!!
+
+```hcl
+mv dept-datascience/team-A/product1/product1-dev-zwindler/terragrunt.hcl terragrunt.hcl 
+cat > dept-datascience/team-A/product1/product1-dev-zwindler/terragrunt.hcl << EOF
+include "root" {
+    path = find_in_parent_folders("terragrunt.hcl")
+}
+EOF
+```
+
+Here you can see that I just "moved" the terragrunt.hcl we previously built to the top level, but now we can access it from any subdirectory with only 3 lines of hcl, which is going to save us a lot of lines of code if we have lots of projects.
+
+You can check that this works by *again* run a `terragrunt plan` which should *again* not see any difference.
