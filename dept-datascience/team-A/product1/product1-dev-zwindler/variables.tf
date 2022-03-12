@@ -1,5 +1,5 @@
 variable "billing_account" {
-    default = "010101-ABABAB-010101"
+    type = string
 }
 
 variable "folder_id" {

@@ -100,3 +100,58 @@ cd dept-datascience/team-A/product1/product1-dev-zwindler
 terraform init
 terraform apply
 ```
+
+Now we have a working IaC environment with Terraform and Google Cloud. 
+
+[Step 1 - 082127c](https://github.com/zwindler/terragrunt/tree/082127c3bd4bc75725bf1b96ebaeec0aa1fa959a)
+
+## Switching to terragrunt
+
+The idea here is now to *improve* our IaC codebase by factoring variables as much as possible using terragrunt.
+
+If all goes well, changing the way our code works with terragrunt should have **NO** impact on "plan" which shouldn't see any change.
+
+First, we need to create at bottom level a terragrunt.hcl file in `dept-datascience/team-A/product1/product1-dev-zwindler`. In this file, we are going to tell terragrunt to look upward in the directory hierarchy for a "global.hcl" file which will contain all the variables we ALWAYS NEED and never change like the billing_account for example.
+
+```hcl
+cat > dept-datascience/team-A/product1/product1-dev-zwindler/terragrunt.hcl << EOF
+inputs = merge(
+    read_terragrunt_config(find_in_parent_folders("global.hcl")).inputs,
+)
+EOF
+```
+
+Note: We could have specified an absolute path in `read_terragrunt_config` function (sometimes it's useful) but having the option to tell terragrunt to manage this by himself is a big help.
+
+then, we create the global.hcl file at top level so that all subdirectories can benefit from it.
+
+```hcl
+cat > global.hcl << EOF
+inputs = {
+    billing_account = "01AB34-CD56EF-78GH90"
+}
+EOF
+```
+
+Finally, we replace the value of billing_account in `dept-datascience/team-A/product1/product1-dev-zwindler/variables.tf` by it's type. That's the only thing I haven't found how to workaround yet.
+
+```tf
+variable "billing_account" {
+    type = string
+    # was previously 'default = "01AB34-CD56EF-78GH90"'
+}
+```
+
+If all goes well, making a terragrunt plan should not see any difference.
+
+```bash
+terragrunt plan
+module.project.google_project.project[0]: Refreshing state... [id=projects/product1-dev-zwindler]
+
+No changes. Your infrastructure matches the configuration.
+
+Terraform has compared your real infrastructure against your configuration
+and found no differences, so no changes are needed.
+```
+
+Note: another nice to have functionnality of terragrunt in comparison to terraform is that you don't have to run "terraform init" anymore. terragrunt ships an "auto init" features which is especially usefull when you heavily use external modules (which need `terraform init` to be rerun everytime you add a module, even you used the same module before).
