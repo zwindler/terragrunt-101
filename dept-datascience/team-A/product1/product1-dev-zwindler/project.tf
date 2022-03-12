@@ -3,5 +3,6 @@ module "project" {
   billing_account = var.billing_account
   name            = var.project_name
   parent          = var.folder_id
+  labels          = local.labels
   services        = []
 }
