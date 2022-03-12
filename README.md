@@ -1,6 +1,6 @@
-# terragrunt
+# Terragrunt 101
 
-## prerequisites
+## Prerequisites
 
 Create a free Google Cloud account (with 300$ credits)
 
@@ -56,11 +56,7 @@ chmod +x terragrunt_linux_amd64
 sudo mv terragrunt_linux_amd64 /usr/local/bin/terragrunt
 ```
 
-## create terraform state buckets
-
-TODO
-
-## folders & projects hierarchy
+## Folders & projects hierarchy
 
 ```
 └── terragrunt
@@ -78,17 +74,29 @@ TODO
 Create all the folders
 
 ```bash
-cd shared-services
+cd shared-services/folders
 terraform init
-gcloud auth application-default login
 terraform apply
 ```
 
-Once the folders are created, get the folders ID, and configure the project
+## Create terraform state buckets
+
+Now we kinda have a chicken and egg issue with the bucket creation because state can't be stored for the project as the bucket is not yet created. Either create the bucket manually or remove the backend.tf file temporarily
 
 ```bash
-cd ../dept-datascience/team-A/product1/product1-dev
-terraform init 
+cd shared-services/states-bucket
+terraform init
+terraform apply
 ```
 
-##
+## Deploy a project
+
+Once the folders are created, get the folders ID, and configure the project variables (ex. ` dept-datascience/team-A/product1/product1-dev-zwindler/variables.tf`) to include the good folderID and billing account from previous steps
+
+Deploy one project
+
+```bash
+cd dept-datascience/team-A/product1/product1-dev-zwindler
+terraform init
+terraform apply
+```
