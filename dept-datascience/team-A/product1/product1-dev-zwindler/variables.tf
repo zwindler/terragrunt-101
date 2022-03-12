@@ -3,7 +3,7 @@ variable "billing_account" {
 }
 
 variable "folder_id" {
-    default = "folders/1234567890"
+    default = "folders/1039580298145"
 }
 
 variable "project_name" {
