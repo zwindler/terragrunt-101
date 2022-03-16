@@ -126,7 +126,7 @@ terraform apply
 
 Now we have a working IaC environment with Terraform and Google Cloud. 
 
-[Step 1 - 082127c](https://github.com/zwindler/terragrunt/tree/082127c3bd4bc75725bf1b96ebaeec0aa1fa959a)
+[Step 1 - b8a25fe](https://github.com/zwindler/terragrunt/tree/082127c3bd4bc75725bf1b96ebaeec0aa1fa959a)
 
 ## Switching to terragrunt
 
@@ -289,6 +289,13 @@ remote_state {
 }
 ```
 
+Now, this time (and this time only), terragrunt plan won't work out of the box. Terraform will sense that there is some kind of change here with the state. In reality there is absolutely no change. We just have to run terragrunt init first and it will be solved
+
+```bash
+terragrunt init
+terragrunt plan
+```
+
 Once again, terragrunt plan shouldn't see any difference ;-).
 
 [Step 5 - 9145ee7](https://github.com/zwindler/terragrunt/tree/9145ee7838680d20f9c89f90fe2573b085f16de8)
@@ -315,7 +322,7 @@ Then, the team name and owner name are going to be the same for all project bene
 ```hcl
 cat > dept-datascience/team-A/team.hcl <<EOF
 inputs = {
-    team" = "team_a"
+    "team" = "team_a"
     "owner" = "zwindler"
 }
 EOF
@@ -363,15 +370,25 @@ terragrunt plan should output a project similar in every point, with all the req
 
 ```bash
 cp dept-datascience/team-A/product1/product1-dev-zwindler/*.{tf,hcl} dept-datascience/team-A/product1/product1-prod-zwindler
-cd dept-datascience/team-A/product1/product1-prod-zwindler
 
-terragrunt plan
+terragrunt run-all plan
+INFO[0000] The stack at /home/zwindler/sources/terragrunt will be processed in the following order for command plan:
+Group 1
+- Module /home/zwindler/sources/terragrunt/dept-datascience/team-A/product1/product1-dev-zwindler
+- Module /home/zwindler/sources/terragrunt/dept-datascience/team-A/product1/product1-prod-zwindler
+ 
+module.project.google_project.project[0]: Refreshing state... [id=projects/product1-dev-zwindler]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
 Terraform will perform the following actions:
 
   # module.project.google_project.project[0] will be created
   + resource "google_project" "project" {
       + auto_create_network = false
-      + billing_account     = "01AB34-CD56EF-78GH90"
+      + billing_account     = "01E817-713128-2C40B6"
       + folder_id           = "1039580298145"
       + id                  = (known after apply)
       + labels              = {
@@ -386,6 +403,16 @@ Terraform will perform the following actions:
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
+
+No changes. Your infrastructure matches the configuration.
+
+Terraform has compared your real infrastructure against your configuration
+and found no differences, so no changes are needed.
 ```
 
 [Step 7 - HEAD](https://github.com/zwindler/terragrunt)
